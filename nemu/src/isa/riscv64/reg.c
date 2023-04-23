@@ -24,6 +24,13 @@ const char *regs[] = {
 };
 
 void isa_reg_display() {
+	/* <isa.h> -- extern CPU_state cpu; */
+	unsigned int n = sizeof(regs) / sizeof(regs[0]);
+	for (int j = 0; j < n; ++j)
+		/* gdb: info */
+		printf("%3s %#10lx %10lu\n", 
+				regs[j], cpu.gpr[j], cpu.gpr[j]);
+	/* word_t -- long unsigned int */
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {

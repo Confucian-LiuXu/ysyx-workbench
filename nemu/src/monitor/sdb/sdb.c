@@ -15,6 +15,7 @@
 
 #include <isa.h>
 #include <cpu/cpu.h>
+#include <memory/paddr.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
@@ -42,6 +43,93 @@ static char* rl_gets() {
   return line_read;
 }
 
+static int cmd_si(char *args) {
+	/* serve the first token as n and discard the remaining string  */
+	/* NOTE: "the delimiter bytes at the start or end of the string are ingored" -> "  23 ..." -> arg = "23" */
+	char *arg = strtok(args, " ");
+	/* default n = 1 if no arg is specified */
+	unsigned int n = 1;
+
+	if (arg != NULL)
+		/* atoi also ignore the leading ' ' */
+		n = atoi(arg);
+
+	cpu_exec(n);
+	return 0;
+}
+
+static int cmd_info(char *args) {
+	char *arg = strtok(args, " ");
+
+	if (arg == NULL)
+		isa_reg_display();
+	
+	if (strlen(arg) > 1 || (arg[0] != 'r' && arg[0] != 'w'))
+		printf("ValueError: please enter 'r' or 'w'\n");
+	else
+	{
+		switch (arg[0])
+		{
+			case 'r':
+				isa_reg_display();
+				break;
+			case 'w':
+				/* TODO */
+				assert(0);
+		}
+	}
+
+	return 0;
+}
+
+static int cmd_x(char *args) {
+	/* 1. x [hex-address] */
+	/* 2. x [n] hex-address  */
+	static paddr_t __paddr = RESET_VECTOR;
+
+	char *arg_1st = strtok(args, " ");
+	char *arg_2nd = strtok(NULL, " ");
+
+	if (arg_1st == NULL)
+	{
+		/* paddr_read(..., [1/2/4/8]) */
+		printf("%#x: 0x%08lx\n", __paddr, paddr_read(__paddr, 4));
+		__paddr += 4;
+	}
+	else if (arg_2nd == NULL)
+	{
+		sscanf(arg_1st, "%x", &__paddr);
+		printf("%#x: 0x%08lx\n", __paddr, paddr_read(__paddr, 4));
+	}
+	else
+	{
+		unsigned int n = atoi(arg_1st);
+		sscanf(arg_2nd, "%x", &__paddr);
+		for (int j = 0; j < n; j++)
+		{
+			printf("%#x: 0x%08lx\n", __paddr, paddr_read(__paddr, 4));
+			__paddr += 4;
+		}
+	}
+
+	return 0;
+}
+
+static int cmd_p(char *args) {
+	if (args == NULL)
+		return 0;
+
+	bool success;
+	word_t ret = expr(args, &success);
+
+	if (success == false)
+		printf("Error: the expression is illegal!\n");
+	else
+		printf("%lu\n", ret);
+
+	return 0;
+}
+
 static int cmd_c(char *args) {
   cpu_exec(-1);
   return 0;
@@ -62,9 +150,11 @@ static struct {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
-
   /* TODO: Add more commands */
-
+  { "si", "Pause after stepping N instructions(default: N = 1)", cmd_si },
+  { "info", "Print program status [r/w]", cmd_info },
+  { "x", "Display the memory content", cmd_x },
+  { "p", "Expression evalation(+,-,*,/)", cmd_p },
 };
 
 #define NR_CMD ARRLEN(cmd_table)
