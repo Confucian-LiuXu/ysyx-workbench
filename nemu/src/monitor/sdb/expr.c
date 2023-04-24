@@ -21,30 +21,42 @@
 #include <regex.h>
 
 enum {
-  TK_NOTYPE = 256, 
-  TK_EQ,
-  /* TODO: Add more token types */
-  TK_INT,
+	TK_NOTYPE = 256, 
+	/* TODO: Add more token types */
+	TK_DEC,
+	TK_HEX,
+	TK_REG,
+	TK_EQ,
+	TK_NE,
+	// '+', '-', '*', '/', '(', ')'
+	TK_AND,
+	TK_OR,
+	TK_DEREF,
 };
 
 static struct rule {
-  const char *regex;
-  int token_type;
+	const char *regex;
+	int type;
 } rules[] = {
 
   /* TODO: Add more rules.
    * Pay attention to the precedence level of different rules.
    */
 
-  {"==", TK_EQ},        // equal
-  {" +", TK_NOTYPE},    // spaces
-  {"\\+", '+'},         // plus
-  {"-", '-'},			// minus
-  {"\\*", '*'},			// multiply
-  {"/", '/'},			// division
-  {"\\(", '('},			// l-parenthese
-  {")", ')'},			// r-parenthese
-  {"[0-9]+", TK_INT},	// integer
+	{" +", TK_NOTYPE},			// spaces
+	{"0[xX][0-9]+", TK_HEX},	// hexadecimal
+	{"[0-9]+", TK_DEC},			// decimal
+	{"\\$(\\$0|ra|[sgt]p|t[0-6]|a[0-7]|s[0-9]|s1[01])", TK_REG},
+	{"==", TK_EQ},				// equal
+	{"!=", TK_NE},				// not equal
+	{"\\+", '+'},         		// addition
+	{"-", '-'},					// subtraction
+	{"\\*", '*'},				// multiplication
+	{"/", '/'},					// division
+	{"\\(", '('},				// l-parenthese
+	{")", ')'},					// r-parenthese
+	{"&&", TK_AND},				// and
+	{"\\|\\|", TK_OR},			// or
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -100,16 +112,24 @@ static bool make_token(char *e) {
          * of tokens, some extra actions should be performed.
          */
 
-        switch (rules[i].token_type) {
+        switch (rules[i].type) {
+			case TK_NOTYPE:
+				/* discard (see below) */
+				break;
 			case '+':
 			case '-':
 			case '*':
 			case '/':
 			case '(':
 			case ')':
-				tokens[nr_token].str[0] = '\0';
+			case TK_EQ:
+			case TK_NE:
+			case TK_AND:
+			case TK_OR:
+				/* for operator, we don't use tokens[j].str */
 				break;
-			case TK_INT:
+			case TK_DEC:
+			case TK_HEX:
 				if (substr_len > 31)
 				{
 					/* TODO: buffer overflow */
@@ -122,14 +142,19 @@ static bool make_token(char *e) {
 					tokens[nr_token].str[substr_len] = '\0';
 				}
 				break;
-			case TK_NOTYPE:
-				/* discard */
+			case TK_REG:
+				/* TODO: discard '$' */
+				strncpy(tokens[nr_token].str, substr_start + 1,
+						substr_len - 1);
+				tokens[nr_token].str[substr_len - 1] = '\0';
 				break;
-			default: TODO();
+			default:
+				/* can't recognize the token's type */
+				assert(0);
         }
 
-		if (rules[i].token_type != TK_NOTYPE)
-			tokens[nr_token++].type = rules[i].token_type;
+		if (rules[i].type != TK_NOTYPE)
+			tokens[nr_token++].type = rules[i].type;
 
         break;
       }
@@ -182,16 +207,34 @@ static bool check_parentheses(int p, int q)
 
 int op_pre(int type)
 {
+	/* C operator precedence: https://www.cs.uic.edu/~i109/Notes/COperatorPrecedenceTable.pdf */
 	switch (type)
 	{
-		case '+':
-		case '-':
+		/* TK_DEC, TK_HEX, TK_REG have the highest priority */
+		case TK_DEC:
+		case TK_HEX:
+		case TK_REG:
+			return 0;
+		case '(':
+		case ')':
 			return 1;
+		case TK_DEREF:
+			return 2;
 		case '*':
 		case '/':
-			return 2;
+			return 3;
+		case '+':
+		case '-':
+			return 4;
+		case TK_EQ:
+		case TK_NE:
+			return 7;
+		case TK_AND:
+			return 11;
+		case TK_OR:
+			return 12;
 		default:
-			return 0;
+			assert(0);
 	}
 };
 
@@ -202,7 +245,9 @@ int main_op(int p, int q)
 
 	while (p <= q)
 	{
-		if (tokens[p].type == TK_INT)
+		if (tokens[p].type == TK_DEC ||
+			tokens[p].type == TK_HEX ||
+			tokens[p].type == TK_REG)
 			p++;
 		else if (tokens[p].type == '(')
 		{
@@ -235,7 +280,8 @@ int main_op(int p, int q)
 				int src =  op_pre(tokens[loc].type);
 				int dest = op_pre(tokens[p].type);
 
-				if (dest <= src)	// rather than '<'
+				/* dereference : unary operator */
+				if (dest >= src)
 					loc = p;
 			}
 			++p;
@@ -252,24 +298,37 @@ word_t eval(int p, int q)
 
 	if (p == q)
 	{
-		/* TODO : HEX, DECIMAL, OCT */
-		/* switch-case */
-		assert(tokens[p].type == TK_INT);
-
-		/* <stdlib.h> atoi -- ascii to integer */
-		return atoi(tokens[p].str);
+		switch (tokens[p].type)
+		{
+			case TK_DEC:
+				/* <stdlib.h> atoi -- ascii to integer */
+				return atoi(tokens[p].str);
+			case TK_HEX:
+				unsigned int tmp;
+				sscanf(tokens[p].str, "%x", &tmp);
+				return tmp;
+			case TK_REG:
+				bool success;
+				return isa_reg_str2val(tokens[p].str, &success);
+			default:
+				assert(0);
+		}
 	}
 	else if (check_parentheses(p, q) == true)
 		return eval(p + 1, q - 1);
 	else
 	{
 		int op = main_op(p, q);
-		word_t lv = eval(p, op - 1);
+		word_t lv = (tokens[op].type == TK_DEREF) ? 0 : eval(p, op - 1);
 		word_t rv = eval(op + 1, q);
 		/* e.g "(5 - 1)(2 * 3)" */
 
 		switch (tokens[op].type)
 		{
+			case TK_DEREF:
+				/* read from memory */
+				/* vaddr_read(rv, 8) */
+				return vaddr_read(rv, 4);
 			case '+':
 				return lv + rv;
 			case '-':
@@ -279,6 +338,14 @@ word_t eval(int p, int q)
 			case '/':
 				/* TODO: x / 0 ??? */
 				return lv / rv;
+			case TK_EQ:
+				return lv == rv;
+			case TK_NE:
+				return lv != rv;
+			case TK_AND:
+				return lv && rv;
+			case TK_OR:
+				return lv || rv;
 			default:
 				/* illegal  */
 				assert(0);
@@ -296,6 +363,14 @@ word_t expr(char *e, bool *success) {
 
 	/* default 'true' */
 	*success = true;
+	/* unary operator: dereference / minus(-) */
+	for (int j = 0; j < nr_token; ++j)
+	{
+		if (j == 0 && tokens[j].type == '*')
+			tokens[j].type = TK_DEREF;
+		else if (tokens[j].type == '*' && op_pre(tokens[j].type) >= 3)
+			tokens[j].type = TK_DEREF;
+	}
 
 	return eval(0, nr_token - 1);
 };
