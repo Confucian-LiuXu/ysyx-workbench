@@ -130,6 +130,16 @@ static int cmd_p(char *args) {
 	return 0;
 }
 
+static int cmd_w(char *args) {
+	new_wp(args);
+	return 0;
+}
+
+static int cmd_d(char *args) {
+	free_wp(atoi(args));
+	return 0;
+}
+
 static int cmd_c(char *args) {
   cpu_exec(-1);
   return 0;
@@ -155,6 +165,8 @@ static struct {
   { "info", "Print program status [r/w]", cmd_info },
   { "x", "Display the memory content", cmd_x },
   { "p", "Expression evalation(+,-,*,/)", cmd_p },
+  { "w", "Set watchpoint for EXPR and stop program when EXPR'value changes", cmd_w },
+  { "d", "Delete watchpoint N", cmd_d },
 };
 
 #define NR_CMD ARRLEN(cmd_table)

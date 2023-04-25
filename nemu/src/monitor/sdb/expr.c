@@ -44,9 +44,9 @@ static struct rule {
    */
 
 	{" +", TK_NOTYPE},			// spaces
-	{"0[xX][0-9]+", TK_HEX},	// hexadecimal
+	{"0[xX][0-9a-f]+", TK_HEX},	// hexadecimal
 	{"[0-9]+", TK_DEC},			// decimal
-	{"\\$(\\$0|ra|[sgt]p|t[0-6]|a[0-7]|s[0-9]|s1[01])", TK_REG},
+	{"\\$(\\$0|ra|[sgt]p|t[0-6]|a[0-7]|s[0-9]|s1[01]|pc)", TK_REG},
 	{"==", TK_EQ},				// equal
 	{"!=", TK_NE},				// not equal
 	{"\\+", '+'},         		// addition
@@ -368,7 +368,7 @@ word_t expr(char *e, bool *success) {
 	{
 		if (j == 0 && tokens[j].type == '*')
 			tokens[j].type = TK_DEREF;
-		else if (tokens[j].type == '*' && op_pre(tokens[j].type) >= 3)
+		else if (tokens[j].type == '*' && op_pre(tokens[j - 1].type) > op_pre(TK_DEREF))
 			tokens[j].type = TK_DEREF;
 	}
 
