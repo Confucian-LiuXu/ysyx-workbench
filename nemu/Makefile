@@ -59,3 +59,9 @@ else
 # Include rules to build NEMU
 include $(NEMU_HOME)/scripts/native.mk
 endif
+
+.PHONY: count
+
+# escape '$'
+count:
+	@echo "total:" $(shell find . -name '*.c' -or -name '*.h' | xargs grep -E -v '^ *$$' | wc -l) "lines"
