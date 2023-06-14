@@ -153,6 +153,14 @@ config WATCHPOINT
   string "Enable watchpoint set"
   default "true"
 
+config MTRACE
+  string "Enable memory tracer"
+  default "true"
+
+config FTRACE
+  bool "Enable function calling tracer"
+  default y
+
 config DIFFTEST
   depends on TARGET_NATIVE_ELF
   bool "Enable differential testing"

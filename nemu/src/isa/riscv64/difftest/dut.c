@@ -18,7 +18,24 @@
 #include "../local-include/reg.h"
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
-  return false;
+	bool flag = true;
+
+	if (cpu.pc != ref_r->pc)
+		flag = false;
+	else
+	{
+		int regN = 32;
+		for (int j = 0; j < regN; ++j)
+			if (ref_r->gpr[j] != cpu.gpr[j])
+				flag = false;
+	}
+
+	if (flag == false)
+		printf(ANSI_FMT("==>", ANSI_FG_RED)
+			   " pc = 0x%08x\n"
+			   ANSI_FMT("DiffTest Failure! Check the implementation of DUT\n", ANSI_FG_RED)
+			   , pc);
+	return flag;
 }
 
 void isa_difftest_attach() {
