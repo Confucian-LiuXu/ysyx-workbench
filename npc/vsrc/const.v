@@ -72,7 +72,7 @@ the file containts the global macro definition */
 `define ENUM_OP_SLTU `OP_BIT'd9
 // lui
 `define ENUM_OP_ADD0 `OP_BIT'd10
-// if most instructions => `OP_BIT'd0
+
 `define ENUM_OP_NONE `OP_BIT'd11
 
 // func3(R)
@@ -86,17 +86,6 @@ the file containts the global macro definition */
 `define FUNC3_SRA  	3'b101
 `define FUNC3_SLT  	3'b010
 `define FUNC3_SLTU 	3'b011
-// func7(R)
-`define FUNC7_ADD	7'b0000000
-`define FUNC7_SUB  	7'b0100000
-`define FUNC7_AND  	7'b0000000
-`define FUNC7_OR   	7'b0000000
-`define FUNC7_XOR  	7'b0000000
-`define FUNC7_SLL  	7'b0000000
-`define FUNC7_SRL  	7'b0000000
-`define FUNC7_SRA  	7'b0100000
-`define FUNC7_SLT  	7'b0000000
-`define FUNC7_SLTU 	7'b0000000
 
 // func3(I)
 `define FUNC3_ADDI	`FUNC3_ADD
@@ -124,7 +113,7 @@ the file containts the global macro definition */
 `define ENUM_LS_SB		`LS_BIT'd5
 `define ENUM_LS_SH		`LS_BIT'd6
 `define ENUM_LS_SW		`LS_BIT'd7
-// default
+
 `define ENUM_LS_NONE	`LS_BIT'd8
 
 // load
@@ -159,5 +148,5 @@ the file containts the global macro definition */
 `define FUNC3_BNE		3'b001
 
 
-// ------------------------------------------ BitSel ---------------------------------------------
+// ------------------------------------------ EndSim ---------------------------------------------
 `define INST_EBREAK 32'b000000000001_00000_000_00000_1110011
