@@ -1,9 +1,1 @@
-# "一生一芯"工程项目
-
-这是"一生一芯"的工程项目. 通过运行
-```bash
-bash init.sh subproject-name
-```
-进行初始化, 具体请参考[实验讲义][lecture note].
-
-[lecture note]: https://docs.ysyx.org/schedule.html
+这里是我的第五期"一生一芯"代码仓库，目前进行至 B 阶段 NPC 部分，已完成 RV32I 数据通路的 RTL 编写，但尚测试
